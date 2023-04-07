@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业订单列表</title>
+    <!-- antd样式 -->
+    <link rel="stylesheet" href="./lib/css/antd.min.css">
+    <style>
+        #SellerAdminApp {
+            background: #f0f2f5;
+            padding: 20px;
+        }
+
+        .page-head {
+            position: relative;
+            margin: -20px -20px 20px -20px;
+            padding: 20px 20px 0 20px;
+            background-color: #fff;
+        }
+
+        .page-head h1 {
+            margin-top: 10px;
+            margin-bottom: 0;
+            font-size: 22px;
+        }
+
+        .page-head .ant-tabs-top>.ant-tabs-nav {
+            margin-bottom: 0;
+        }
+
+        /* 搜索区域 */
+        .search-card .ant-card-body {
+            padding-bottom: 0;
+        }
+
+        .specialLabel label::after {
+            content: ' '
+        }
+
+        /* 表格 */
+        table {
+            min-width: 100%;
+        }
+
+        thead {
+            border: 1px solid #eee;
+            background-color: #fafafa;
+            height: 54px;
+        }
+        thead th{
+            text-align: left;
+            padding: 10px;
+        }
+
+        tr.line1 td {
+            padding-left: 16px;
+            height: 50px;
+        }
+
+        tr.line2 {
+            background-color: #fafafa;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        tr.line2 td {
+            padding: 10px;
+        }
+
+        tr.line3 {
+            background-color: #fafafa;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        tr.line3 td {
+            height: 50px;
+            position: relative;
+        }
+        tr.line3 td>div{
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding-left: 16px;
+            padding-right: 16px;
+            line-height: 50px;
+            overflow: hidden;
+            text-overflow:ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 商品信息 */
+        .good-card {
+            display: flex;
+            max-width: 200px;
+        }
+
+        .good-card .good-img {
+            width: 48px;
+            height: 48px;
+        }
+
+        .good-card .good-content {
+            margin-left: 10px;
+        }
+
+        .good-card .good-content .good-title {
+            max-width: 170px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 表格操作列 */
+        .action {
+            display: inline-block;
+            color: #1890ff;
+            width: 100px;
+        }
+
+        .action>div {
+            cursor: pointer;
+        }
+
+        /* 弹窗 */
+        .modal-footer {
+            text-align: right;
+            padding-top: 5px;
+        }
+
+        .modal-footer .left-btn {
+            margin-right: 10px;
+        }
+
+        .tips {
+            margin-bottom: 8px;
+            padding-left: 15px;
+            height: 38px;
+            line-height: 38px;
+            background: #FFFBE6;
+            border-radius: 2px 2px 2px 2px;
+            border: 1px solid #FFE58F;
+        }
+
+        .tips2 {
+            margin: 0 0 8px 8px;
+            padding-left: 15px;
+            height: 40px;
+            line-height: 40px;
+            background: #E6F7FF;
+            border-radius: 2px 2px 2px 2px;
+            border: 1px solid #91D5FF;
+        }
+
+        /* 翻页器 */
+        .page-footer {
+            display: flex;
+            justify-content: space-between;
+            margin-top:16px;
+            padding: 5px 0;
+        }
+
+        .page-footer .total {
+            color: #666;
+        }
+        .ant-select-selector{
+            max-height: 60px;
+            overflow-y: auto;
+        }
+        .ant-select-multiple .ant-select-selection-search{
+            margin-inline-start: 0px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="SellerAdminApp"></div>
+    <!-- 引入vue -->
+    <script src="./lib/js/vue.global.js"></script>
+    <!-- script方式引antd，必须引用dayjs及其插件 -->
+    <script src="./lib/js/dayjs/dayjs.min.js"></script>
+    <script src="./lib/js/dayjs/plugin/customParseFormat.js"></script>
+    <script src="./lib/js/dayjs/plugin/weekday.js"></script>
+    <script src="./lib/js/dayjs/plugin/localeData.js"></script>
+    <script src="./lib/js/dayjs/plugin/weekOfYear.js"></script>
+    <script src="./lib/js/dayjs/plugin/weekYear.js"></script>
+    <script src="./lib/js/dayjs/plugin/advancedFormat.js"></script>
+
+    <!-- 引入antd -->
+    <script src="./lib/js/antd.min.js"></script>
+
+    <!-- 引入zh_CN 中文包-->
+    <script src="./lib/js/locale/zh_CN.js"></script>
+    <script src="./lib/js/locale/day_zh_CN.js"></script>
+
+    <!-- 引入axios -->
+    <script src="./lib/js/axios.min.js"></script>
+    <!-- 公共方法：请求、获取cookie、获取url参数等 -->
+    <script src="./js/public.js"></script>
+
+    <script type="x-template" id="tem">
+        <a-config-provider :locale="locale">
+            <div class="page-head">
+                <a-breadcrumb>
+                    <a-breadcrumb-item>企业订单</a-breadcrumb-item>
+                    <a-breadcrumb-item>企业订单管理</a-breadcrumb-item>
+                </a-breadcrumb>
+                <h1>企业订单</h1>
+            
+                <a-tabs v-model:activeKey="activeKey" v-on:change="tabChange">
+                    <a-tab-pane :key="item.key" :tab="item.label" v-for="item in labelList"></a-tab-pane>
+                </a-tabs>
+            </div>
+            
+            <a-card class="search-card">
+                <a-form ref="formRef" :model="formState" :label-col="{ style: { width: '80px' } }"
+                    v-on:finish="searchHandle"
+                >
+                    <a-row :gutter="5">
+                        <a-col span="6">
+                            <a-form-item label="订单号" name="orderId">
+                                <a-input v-model:value="formState.orderId" :maxlength="50" placeholder="请输入"
+                                    v-on:input="formState.orderId=formState.orderId.replace(/\D/g,'')"
+                                ></a-input>
+                            </a-form-item>
+                        </a-col>
+                        <a-col span="6">
+                            <a-form-item label="采购员">
+                                <a-select v-model:value="formState.userIdList" placeholder="请输入" mode="multiple" :filter-option="false"
+                                    :default-active-first-option="false" v-on:search="searchUserList" :show-arrow="false"
+                                    :options="userList" :fieldNames="{ label: 'dictName', value: 'dictId'}"
+                                ></a-select>
+                            </a-form-item>
+                        </a-col>
+                        <a-col span="6">
+                            <a-form-item label="手机号" name="userContact">
+                                <a-input v-model:value="formState.userContact" :maxlength="11" placeholder="请输入"
+                                    v-on:input="formState.userContact=formState.userContact.replace(/\D/g,'')"
+                                ></a-input>
+                            </a-form-item>
+                        </a-col>
+                        <a-col span="6">
+                            <a-form-item label="商品名" name="productIdList">
+                                <a-select v-model:value="formState.productIdList" placeholder="请输入" mode="multiple" :filter-option="false"
+                                    :default-active-first-option="false" v-on:search="searchGoodsList" :show-arrow="false"
+                                    :options="goodsList" :fieldNames="{ label: 'dictName', value: 'dictId'}"
+                                ></a-select>
+                            </a-form-item>
+                        </a-col>
+                    </a-row>
+                    <a-row :gutter="5">
+                        <a-col span="6">
+                            <a-form-item label="采购公司" name="enterpriseIdList">
+                                <a-select v-model:value="formState.enterpriseIdList" placeholder="请输入" mode="multiple" :filter-option="false"
+                                    :default-active-first-option="false" v-on:search="searchCompanyList" :show-arrow="false"
+                                    :options="companyList" :fieldNames="{ label: 'dictName', value: 'dictId'}"
+                                ></a-select>
+                            </a-form-item>
+                        </a-col>
+                        <a-col span="6">
+                            <a-form-item label="付款类型" name="payType">
+                                <a-select v-model:value="formState.payType">
+                                    <a-select-option value="">全部</a-select-option>
+                                    <a-select-option :value="item.value"
+                                        v-for="item in payTypeList">{{item.label}}</a-select-option>
+                                </a-select>
+                            </a-form-item>
+                        </a-col>
+                        <a-col span="6">
+                            <a-form-item label="下单时间" name="startDate">
+                                <a-date-picker v-model:value="formState.startDate" format="YYYY-MM-DD" valueFormat="YYYY-MM-DD"
+                                    placeholder="请选择时间" style="width: 100%"/>
+                            </a-form-item>
+                        </a-col>
+                        <a-col span="6">
+                            <a-form-item label=" - " name="endDate" :label-col="{ style: { width: '30px' } }" class="specialLabel">
+                                <a-date-picker v-model:value="formState.endDate" format="YYYY-MM-DD" valueFormat="YYYY-MM-DD"
+                                    placeholder="请选择时间" style="width: 100%"/>
+                            </a-form-item>
+                        </a-col>
+                    </a-row>
+                    <div style="text-align: right; padding-bottom: 10px;">
+                        <a-button type="primary" html-type="submit">查询</a-button>
+                        <a-button style="margin-left: 10px" v-on:click="onReset">重置</a-button>
+                    </div>
+                </a-form>
+            </a-card>
+            <a-card style="margin-top: 20px">
+                <a-button style="margin-bottom: 10px" type="primary" v-on:click="exportHandle">导出订单</a-button>
+                <!-- loading -->
+                <a-spin :spinning="spinning">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>商品</th>
+                                <th>付款类型</th>
+                                <th>发货数量</th>
+                                <th>订单总额</th>
+                                <th>采购员</th>
+                                <th>采购公司</th>
+                                <th>订单状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template v-for="item in dataSource">
+                                <tr class="line1">
+                                    <td colspan="12">
+                                        <span>订单号：{{item.orderId}}</span>
+                                        <span style="margin-left: 30px;">主单号：{{item.parentOrderId}}</span>
+                                        <span style="margin-left: 30px;">{{item.orderDateDesc}}</span>
+                                        <span style="margin-left: 30px;">下单渠道：{{item.platformText}}</span>
+                                    </td>
+                                </tr>
+                                <tr class="line2" v-for="good in item.procurementOrderItems">
+                                    <td style="text-align:left">
+                                        <div class="good-card">
+                                            <img class="good-img" :src="good.thumbnailsUrl" alt="">
+                                            <div class="good-content">
+                                                <div class="good-title" :title="good.productName"><a :href="'/organization#/shopping/goodsDetails?ProductId='+good.productId" target="_blank">{{good.productName}}</a></div>
+                                                <div class="good-sku">
+                                                    {{good.color}} &nbsp;&nbsp;
+                                                    {{good.size}}
+                                                </div>
+                                                <div class="good-price">
+                                                    ¥{{numToFixed(good.salePrice)}}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{item.paymentTypeId==1?'在线付款':item.paymentTypeId==2?'先货后款':item.paymentTypeId==3?'对公转账':item.paymentTypeId==4?'免费兑换':''}}</td>
+                                    <td>
+                                        <div>已发：{{good.shippingNum}}</div>
+                                        <div style="color: #FA8C16;">
+                                            待发：{{!(item.paymentTypeId==2 && item.deliveryApprovalAuditStatus==2) && (good.quantity-good.shippingNum)>=0?good.quantity-good.shippingNum:0}}
+                                        </div>
+                                        <div style="color:#52C41A" v-if="good.lessPayCount && item.deliveryApprovalAuditStatus==2">少发：-{{good.lessPayCount}}</div>
+                                        <div style="color:#F5222D" v-if="good.morePayCount">超发：+{{good.morePayCount}}</div>
+                                    </td>
+                                    <td><!-- 订单总金额 -->
+                                        <div>总额：¥{{numToFixed(item.actualPayAmount)}}</div>
+                                        <div style="color:#52C41A" v-if="good.lessPayCount && item.deliveryApprovalAuditStatus==2">少发：¥-{{numToFixed(good.lessPayAmount)}}</div>
+                                        <div style="color:#F5222D" v-if="good.morePayCount">超发：¥+{{numToFixed(good.morePayAmount)}}</div>
+                                    </td>
+                                    
+                                    <td>
+                                        <div>姓名：{{item.realName}}</div>
+                                        <div>手机号：{{item.cellPhone}}</div>
+                                    </td><!-- 采购员 -->
+                                    <td>{{item.companyName}}</td><!-- 采购公司 -->
+                                    <td>
+                                        {{item.statusDesc}}
+                                        <div>
+                                            <div v-if="item.paymentTypeId==2 && item.deliveryApprovalAuditStatus==2"
+                                                style="display: inline-block;font-size: 12px; color: #52C41A; border: 1px solid #B7EB8F;"
+                                            >提前完结</div>
+                                        </div>
+                                        <div>
+                                            <div v-if="item.paymentTypeId==2 && item.status==31 && item.deliveryApprovalAuditStatus==1"
+                                                style="display: inline-block;font-size: 12px; color: #FA8C16; border: 1px solid #FFD591;"
+                                            >提前完结审核中</div>
+                                        </div>
+                                        <div>
+                                            <div v-if="item.paymentTypeId==2 && item.status==31 && item.deliveryApprovalAuditStatus==3"
+                                                style="display: inline-block;font-size: 12px; color: #F5222D; border: 1px solid #FFA39E;"
+                                            >拒绝提前完结</div>
+                                        </div>
+                                        
+                                    </td><!-- 订单状态 -->
+                                    <td>
+                                        <div class="action">
+                                            
+                                            <template v-if="renderBtn(item).length<=4">
+                                                <div v-for="aa in renderBtn(item)" v-on:click="aa.myHandle(item)">{{aa.name}}</div>
+                                            </template>
+                                            <template v-if="renderBtn(item).length>4">
+                                                <div v-for="aa in renderBtn(item).slice(0,3)" v-on:click="aa.myHandle(item)">{{aa.name}}</div>
+                                                <a-dropdown>
+                                                    <a class="ant-dropdown-link" v-on:click.prevent>
+                                                      更多 
+                                                      <span style="transform: rotate(90deg); display: inline-block;">></span>
+                                                    </a>
+                                                    <template #overlay>
+                                                      <a-menu>
+                                                        <a-menu-item v-for="bb in renderBtn(item).slice(3)" v-on:click="bb.myHandle(item)">
+                                                          <a href="javascript:;">{{bb.name}}</a>
+                                                        </a-menu-item>
+                                                      </a-menu>
+                                                    </template>
+                                                  </a-dropdown>
+                                            </template>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="line3" v-if="item.sellerRemark">
+                                    <td colspan="12">
+                                        <div>
+                                            商家备注：{{item.sellerRemark}}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </a-spin>
+                <div class="page-footer">
+                    <div class="total">
+                        <span>共{{total}}条记录</span>&nbsp;
+                        <span>第{{pageNum}}/{{pageSize}}页</span>
+                    </div>
+                    <a-pagination v-model:current="pageNum" v-model:pageSize="pageSize" show-quick-jumper :total="total"
+                      v-on:change="onChange" v-on:showSizeChange="onShowSizeChange" />
+                </div>
+            </a-card>
+
+            <!-- 备注弹窗 -->
+            <a-modal v-model:visible="markVisible" title="商家备注" :footer="null"
+                v-on:cancel="cancelMark" :maskClosable="false"
+            >
+                <a-form ref="markFormRef" :model="markFormState">
+                    <a-form-item label="" name="sellerRemark"
+                        :rules="[{ required: true, message: '请输入备注!' }]"
+                    >
+                        <a-textarea v-model:value="markFormState.sellerRemark" :rows="3"
+                            show-count :maxlength="200"
+                        />
+                    </a-form-item>
+                </a-form>
+                <div class="modal-footer">
+                    <a-button class="left-btn" v-on:click="()=>{cancelMark();markVisible = false}">取消</a-button>
+                    <a-button type="primary" v-on:click="confirmMark">保存</a-button>
+                </div>
+            </a-modal>
+
+            <!-- 申请提前完结弹窗 -->
+            <a-modal v-model:visible="earlyVisible" title="申请提前完结" :footer="null"
+                v-on:cancel="cancelEarly" :maskClosable="false"
+            >
+                <a-form ref="earlyFormRef" :model="earlyFormState" layout="vertical">
+                    <div class="tips">温馨提示：申请提前完结后，将不可再发货</div>
+                    <a-form-item label="" name="reason"
+                        :rules="[{ required: true, message: '请输入申请原因!' }]"
+                    >
+                        <a-textarea v-model:value="earlyFormState.reason" :rows="3"
+                            show-count :maxlength="100" placeholder="请输入申请原因"
+                        />
+                    </a-form-item>
+                </a-form>
+                <div class="modal-footer">
+                    <a-button class="left-btn" v-on:click="()=>{cancelEarly();earlyVisible = false}">取消</a-button>
+                    <a-button type="primary" v-on:click="confirmEarly">保存</a-button>
+                </div>
+            </a-modal>
+
+            <!-- 审核完结申请 -->
+            <a-modal v-model:visible="auditVisible" title="审核完结申请" :footer="null"
+                v-on:cancel="cancelAudit" :maskClosable="false"
+            >
+                <a-spin :spinning="modalSpin">
+                    <a-form ref="auditFormRef" :model="auditFormState" :label-col="{ style: { width: '80px' } }">
+                        <a-form-item label="申请原因"
+                        >
+                            {{currentRowOfAudit.approvalReason}}
+                        </a-form-item>
+                        <a-form-item label="审核结果" name="type"
+                        >
+                            <a-radio-group v-model:value="auditFormState.type">
+                                <a-radio value="2">通过</a-radio>
+                                <a-radio value="3">拒绝</a-radio>
+                            </a-radio-group>
+                        </a-form-item>
+                        <div v-if="auditFormState.type==2" class="tips2">审核通过后，将不可再发货，确定要审核通过吗？</div>
+                        <a-form-item label="拒绝原因" name="auditReason" v-if="auditFormState.type==3"
+                            :rules="[{ required: true, message: '请输入拒绝原因!' }]"
+                        >
+                            <a-textarea v-model:value="auditFormState.auditReason" :rows="3"
+                                show-count :maxlength="50"
+                            />
+                        </a-form-item>
+                        
+                    </a-form>
+                    <div class="modal-footer">
+                        <a-button class="left-btn" v-on:click="()=>{cancelAudit();auditVisible = false}">取消</a-button>
+                        <a-button type="primary" v-on:click="confirmAudit">确定</a-button>
+                    </div>
+                </a-spin>
+            </a-modal>
+
+            <!-- 拒绝原因 -->
+            <a-modal v-model:visible="refuseReasonVisible" title="拒绝提前完结原因" :footer="null"
+                :maskClosable="false"
+            >
+                <a-spin :spinning="modalSpin">
+                    {{currentRowOfAudit.auditReason}}
+                </a-spin>
+                <div class="modal-footer">
+                    <a-button type="primary" v-on:click="refuseReasonVisible = false">确定</a-button>
+                </div>
+            </a-modal>
+        </a-config-provider>
+    </script>
+    <script>
+        const { createApp, reactive, toRefs, ref, onMounted, computed } = Vue
+        var dayjs = dayjs
+        // dayjs.locale('zh-cn');
+        const app = createApp({
+            template: '#tem',
+            setup() {
+                delStyle(['/Content/bootstrap.min.css'],'link')
+                const data = reactive({
+                    // 发票状态
+                    invoiceMap: {
+                        0: '未开发票',
+                        1: '申请中',
+                        2: '开票中',
+                        3: '已开票',
+                        4: '取消',
+                        5: '冲红',
+                    },
+                    spinning: false,
+                    modalSpin: false,
+                    // 所有状态
+                    labelList: [
+                        { key: 1, label: '所有订单' },
+                        { key: 50, label: '待支付' },
+                        { key: 20, label: '待发货' },
+                        { key: 31, label: '部分发货' },
+                        { key: 32, label: '全部发货' },
+                        { key: 60, label: '采购完成' },
+                        { key: 99, label: '已关闭' },
+                    ],
+                    activeKey: 1,
+                    // 搜索条件
+                    formState: {
+                        status: undefined, // 状态
+                        orderId: undefined, // 订单号
+                        userIdList: undefined, // 采购员
+                        userContact: undefined, // 手机号
+                        productIdList: undefined,// 商品名称
+                        enterpriseIdList: undefined,// 公司名称
+                        payType: '', // 支付方式
+                        startDate: undefined,
+                        endDate: undefined,
+                    },
+                    userList: [], // 用户下拉框
+                    goodsList: [],// 商品下拉
+                    companyList: [],// 采购公司下拉框
+                    // 付款类型下拉框
+                    payTypeList: [
+                        { value: '1', label: '在线付款' },
+                        { value: '2', label: '先货后款' },
+                        { value: '3', label: '对公转账' },
+                        { value: '4', label: '免费兑换' },
+                    ],
+                    // 表格数据
+                    dataSource: [],
+
+                    currentRow: null, // 选中的单条数据
+                    currentRowOfAudit: {},// 提前完结申请的信息
+                    pageNum: 1, // 当前页面
+                    pageSize: 10,
+                    total: 0,
+                    // 备注相关-----------------
+                    markVisible: false,
+                    markFormState: {
+                        sellerRemark: ''
+                    },
+                    // 提前完结-----------------
+                    earlyVisible: false,
+                    earlyFormState: {
+                        reason: ''
+                    },
+                    // 审核完结-----------------
+                    auditVisible: false,
+                    auditFormState: {
+                        type: '2',
+                        auditReason: ''
+                    },
+                    // 拒绝原因---------------
+                    refuseReasonVisible: false,
+                    refuseReason: '',
+                })
+                const numToFixed = (value) => {
+                    if(value){
+                        return Number(value).toFixed(2)
+                    }
+                }
+                // 渲染按钮的逻辑
+                const renderBtn = computed(() => (item) => {
+                    const result = [{key:'detail',name: '查看', myHandle: showDetail}]
+                    //发货：待发或部分发货，且提前完结状态是待申请或已拒绝
+                    if((item.status==20 || item.status==31) && (item.deliveryApprovalAuditStatus == null || item.deliveryApprovalAuditStatus==3)) {
+                        result.push({key: 'sendGood', name:'发货',myHandle: sendGood})
+                    }
+                    //申请提前完结：支付方式是先货后款，状态是部分发货，且提前完结状态是待申请或已拒绝
+                    if(item.paymentTypeId==2 && item.status==31 && (item.deliveryApprovalAuditStatus == null || item.deliveryApprovalAuditStatus==3)){
+                        result.push({key: 'showEarly', name:'申请提前完结',myHandle: showEarly})
+                    }
+                    // 审核完结申请：支付方式是先货后款，状态是部分发货，且提前完结状态是待审核
+                    if(item.paymentTypeId==2 && item.status==31 && item.deliveryApprovalAuditStatus == 1 && item.deliveryApprovalType==1){
+                        result.push({key: 'showAudit', name:'审核提前完结',myHandle: showAudit})
+                    }
+                    //拒绝原因：状态是部分发货，且提前完结状态是已拒绝
+                    if(item.status==31 && item.deliveryApprovalAuditStatus == 3){
+                        result.push({key: 'showRefuseReason', name:'拒绝原因',myHandle: showRefuseReason})
+                    }
+                    result.push({key: 'showRemark', name:'备注',myHandle: showRemark})
+                    result.push({key: 'toPrint', name:'打印', myHandle: toPrint})
+                    return result
+                })
+                
+                // 消抖
+                const debounce = (fn, delay) => {
+                    let timer = null;
+                    return function () {
+                        let args = arguments
+                        clearTimeout(timer);
+                        timer = setTimeout(function () {
+                            fn(args[0]);
+                        }, delay);
+                    }
+                }
+                // 用户搜索debounce
+                const searchUserDebounce = debounce((value) => {
+                    console.log(value)
+                    if (!value) {
+                        data.userList = []
+                        return
+                    }
+                    service.post('/order/r/select/userInfo', { userName: value, shopId: data.shopId }).then(res => {
+                        if (res.status == 1) {
+                            data.userList = res.data
+                        }
+                    })
+                }, 500)
+
+                // 用户下拉框
+                const searchUserList = (value) => {
+                    searchUserDebounce(value)
+                }
+                // 商品搜索debounce
+                const searchGoodsDebounce = debounce((value) => {
+                    console.log(value)
+                    if (!value) {
+                        data.goodsList = []
+                        return
+                    }
+                    service.post('/order/r/select/productInfo', { productName: value, shopId: data.shopId }).then(res => {
+                        if (res.status == 1) {
+                            data.goodsList = res.data
+                        }
+                    })
+                }, 500)
+
+                // 商品下拉框
+                const searchGoodsList = (value) => {
+                    searchGoodsDebounce(value)
+                }
+                // 采购公司搜索debounce
+                const searchCompanyDebounce = debounce((value) => {
+                    console.log(value)
+                    if (!value) {
+                        data.companyList = []
+                        return
+                    }
+                    service.post('/order/r/select/enterpriseIds', { enterpriseName: value, shopId: data.shopId }).then(res => {
+                        if (res.status == 1) {
+                            data.companyList = res.data
+                        }
+                    })
+                }, 500)
+
+                // 采购公司下拉框
+                const searchCompanyList = (value) => {
+                    searchCompanyDebounce(value)
+                }
+                // 查找----------------------------------------查找---------
+                const searchHandle = () => {
+                    data.pageNum = 1
+                    search()
+                }
+                
+                const search = () => {
+                    data.spinning = true
+                    data.dataSource = []
+                    const formStateTemp = JSON.parse(JSON.stringify(data.formState))
+                    // 处理一下参数
+                    if (formStateTemp.userIdList && formStateTemp.userIdList.length == 0) {
+                        formStateTemp.userIdList = undefined
+                    }
+                    if (formStateTemp.productIdList && formStateTemp.productIdList.length == 0) {
+                        formStateTemp.productIdList = undefined
+                    }
+                    if (formStateTemp.enterpriseIdList && formStateTemp.enterpriseIdList.length == 0) {
+                        formStateTemp.enterpriseIdList = undefined
+                    }
+                    if(!formStateTemp.payType){
+                        formStateTemp.payType = undefined
+                    }
+                    
+                    const params = {
+                        pageSize: data.pageSize,
+                        pageNum: data.pageNum,
+                        ...formStateTemp
+                    }
+                    service.get('./result.json', params).then(res => {
+                        data.dataSource = res.data.list
+                        data.total = res.data.total * 1
+                        data.spinning = false
+                    }).catch(err => {
+                        console.error(err)
+                        vueAntd.message.error('接口出现问题')
+                        data.spinning = false
+                    })
+                }
+                // tab切换
+                const tabChange = (activeKey) => {
+                    if (activeKey == 1) {
+                        data.formState.status = undefined
+                    } else {
+                        data.formState.status = activeKey
+                    }
+                    searchHandle()
+                }
+                // 页码或pageSize改变的回调
+                const onChange = (pageNumber, pageSize) => {
+                    data.pageNum = pageNumber
+                    data.pageSize = pageSize
+                    console.log('pageNumber:', pageNumber, pageSize);
+                    search()
+                };
+                // pageSize改变
+                const onShowSizeChange = (pageNumber, pageSize) => {
+                    console.log('pageSize:', pageNumber, pageSize)
+                };
+                // 获取dom
+                const formRef = ref(null)
+                // 重置
+                const onReset = () => {
+                    formRef.value.resetFields();
+                    data.formState.userIdList = undefined
+                    data.formState.productIdList = undefined
+                    data.formState.enterpriseIdList = undefined
+                    searchHandle()
+                }
+                // 导出
+                const exportHandle = () => {
+                    const formStateTemp = JSON.parse(JSON.stringify(data.formState))
+                    // 处理一下参数
+                    if (formStateTemp.userIdList && formStateTemp.userIdList.length == 0) {
+                        formStateTemp.userIdList = undefined
+                    }
+                    if (formStateTemp.productIdList && formStateTemp.productIdList.length == 0) {
+                        formStateTemp.productIdList = undefined
+                    }
+                    if (formStateTemp.enterpriseIdList && formStateTemp.enterpriseIdList.length == 0) {
+                        formStateTemp.enterpriseIdList = undefined
+                    }
+                    if(!formStateTemp.payType){
+                        formStateTemp.payType = undefined
+                    }
+                    const params = {
+                        pageSize: data.pageSize,
+                        pageNum: data.pageNum,
+                        ...formStateTemp
+                    }
+                    service({
+                        method: 'post',
+                        url: '/order/r/exportList',
+                        data: params,
+                        responseType: 'blob',
+                    }).then(res => {
+                        let blob = new Blob([res], {
+                            type: 'application/vnd.ms-excel',
+                        });
+                        let url = window.URL.createObjectURL(blob);
+                        var a = document.createElement('a');
+                        document.body.appendChild(a);
+                        a.style = 'display: none';
+                        a.href = url;
+                        a.download = `企业订单-${dayjs().format('YYYY-MM-DD')}`;
+                        a.click();
+                    })
+                }
+                // 展示详情
+                const showDetail = (item) => {
+                    if(location.hostname=='localhost') {
+                        location.href = './detail.html?id=' + item.id + '&type=1'
+                    } else {
+                        window.open('./EnterpriseOrderInfo?id=' + item.id + '&type=1')
+                    }
+                }
+                // 发货
+                const sendGood = (item) => {
+                    if(location.hostname=='localhost') {
+                        location.href = './sendGoods.html?id=' + item.id
+                    } else {
+                        window.open('./EnterpriseOrderSend?id=' + item.id)
+                    }
+                }
+                const toPrint = (item) => {
+                    if(location.hostname=='localhost') {
+                        location.href = './print.html?id=' + item.id
+                    } else {
+                        window.open('./EnterpriseOrderprint?id=' + item.id)
+                    }
+                }
+                // --------------------------------备注---------------
+                // 获取备注dom
+                const markFormRef = ref(null)
+                // 展示备注弹窗
+                const showRemark = (record) => {
+                    data.markVisible = true
+                    data.currentRow = record
+                    if(record.sellerRemark){
+                        data.markFormState.sellerRemark = record.sellerRemark
+                    } else {
+                        data.markFormState.sellerRemark = ''
+                    }
+                }
+
+                // 确定备注
+                const confirmMark = () => {
+                    markFormRef.value.validateFields(['sellerRemark']).then(() => {
+                        service.post('/order/w/sellerRemark', {
+                            orderId: data.currentRow.id,
+                            sellerRemark: data.markFormState.sellerRemark
+                        }).then(res => {
+                            data.markVisible = false
+                            search()
+                        })
+                    })
+                }
+                // 取消备注
+                const cancelMark = () => {
+                    markFormRef.value.resetFields(['sellerRemark'])
+                }
+                // --------------------------------提前完结---------------
+                // 获取dom
+                const earlyFormRef = ref(null)
+                // 展示弹窗
+                const showEarly = (record) => {
+                    data.earlyVisible = true
+                    data.currentRow = record
+                    data.earlyFormState.reason = ''
+                }
+
+                // 确定
+                const confirmEarly = () => {
+                    earlyFormRef.value.validateFields(['reason']).then(() => {
+                        service.post('/order/delivery/approval/create', {
+                            approvalReason: data.earlyFormState.reason,
+                            approvalType: 2,
+                            orderId: data.currentRow.id
+                        }).then(res => {
+                            if (res.status == 1) {
+                                vueAntd.message.success('操作成功')
+                                data.earlyVisible = false
+                                search()
+                            } else {
+                                vueAntd.message.error(res.msg)
+                            }
+                        })
+                    })
+                }
+                // 取消
+                const cancelEarly = () => {
+                    earlyFormRef.value.resetFields(['reason'])
+                }
+                // --------------------------------审核完结---------------
+                // 获取dom
+                const auditFormRef = ref(null)
+                // 展示弹窗
+                const showAudit = (record) => {
+                    if (record.deliveryApprovalId) {
+                        data.auditVisible = true
+                        data.currentRow = record
+                        data.modalSpin = true
+                        data.auditFormState.type = '2'
+                        data.auditFormState.auditReason = ''
+                        service.get('/order/delivery/approval/detail?id=' + record.deliveryApprovalId, {}).then(res => {
+                            if (res.status == 1) {
+                                data.currentRowOfAudit = res.data
+                            } else {
+                                vueAntd.message.error(res.msg)
+                            }
+                            data.modalSpin = false
+                        }).catch(() => {
+                            data.modalSpin = false
+                        })
+                    } else {
+                        vueAntd.message.error('数据有问题')
+                    }
+                }
+
+                // 审核完结-确定
+                const confirmAudit = () => {
+                    auditFormRef.value.validateFields(['auditReason']).then(() => {
+                        service.post('/order/delivery/approval/audit', {
+                            auditReason: data.auditFormState.auditReason,
+                            auditStatus: data.auditFormState.type,
+                            orderId: data.currentRow.id,
+                            id: data.currentRow.deliveryApprovalId
+                        }).then(res => {
+                            if (res.status == 1) {
+                                vueAntd.message.success('操作成功')
+                                data.auditVisible = false
+                                search()
+                            } else {
+                                vueAntd.message.error(res.msg)
+                            }
+                        })
+                    })
+                }
+                // 取消
+                const cancelAudit = () => {
+                    auditFormRef.value.resetFields(['auditReason'])
+                }
+                // --------------------------------拒绝原因---------------
+                // 展示弹窗
+                const showRefuseReason = (record) => {
+                    if (record.deliveryApprovalId) {
+                        data.refuseReasonVisible = true
+                        data.currentRow = record
+                        data.modalSpin = true
+                        service.get('/order/delivery/approval/detail?id=' + record.deliveryApprovalId, {}).then(res => {
+                            if (res.status == 1) {
+                                data.currentRowOfAudit = res.data
+                            } else {
+                                vueAntd.message.error(res.msg)
+                            }
+                            data.modalSpin = false
+                        }).catch(() => {
+                            data.modalSpin = false
+                        })
+                    } else {
+                        vueAntd.message.error('数据有问题')
+                    }
+                }
+                // -------------------------------------------------------
+                onMounted(() => {
+                    data.shopId = getCookie('Scmmall-Shop')
+                    data.formState.shopIdList = [data.shopId]
+                    search()
+                })
+                return {
+                    numToFixed,
+                    renderBtn,
+                    locale: localeValues,
+                    ...toRefs(data),
+                    searchUserList,
+                    searchGoodsList,
+                    searchCompanyList,
+                    searchHandle,
+                    search,
+                    onReset,
+                    onChange,
+                    onShowSizeChange,
+                    tabChange,
+                    exportHandle,
+                    toPrint,
+                    showDetail,
+                    sendGood,
+                    dayjs,
+                    formRef,
+                    // ------------备注-------
+                    showRemark,
+                    confirmMark,
+                    markFormRef,
+                    cancelMark,
+                    // ------------提前完结-----
+                    showEarly,
+                    confirmEarly,
+                    earlyFormRef,
+                    cancelEarly,
+                    // ------------审核完结-----
+                    showAudit,
+                    confirmAudit,
+                    auditFormRef,
+                    cancelAudit,
+                    // ------------拒绝原因
+                    showRefuseReason,
+                }
+            },
+        }).use(vueAntd).mount('#SellerAdminApp')
+
+        document.addEventListener('visibilitychange',function(){
+            if(document.visibilityState==='visible'){
+                app.search()
+            }
+        })
+
+    </script>
+</body>
+
+</html>
